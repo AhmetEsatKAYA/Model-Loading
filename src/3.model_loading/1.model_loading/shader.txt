@@ -1,0 +1,46 @@
+#version 330 core
+struct Material {
+    sampler2D texture_diffuse1;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+struct Light {
+    vec3 position;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec2 TexCoords;
+
+out vec4 FragColor;
+
+uniform Material material;
+uniform Light light;
+uniform vec3 viewPos;
+
+void main()
+{
+    vec3 ambient, diffuse, specular;
+    
+    // If texture is available, use it; otherwise use material colors
+    if (texture(material.texture_diffuse1, TexCoords).r != 0.0) {
+        ambient = light.ambient * texture(material.texture_diffuse1, TexCoords).rgb;
+        diffuse = light.diffuse * max(dot(normalize(Normal), normalize(light.position - FragPos)), 0.0) * texture(material.texture_diffuse1, TexCoords).rgb;
+    } else {
+        ambient = light.ambient * material.diffuse;
+        diffuse = light.diffuse * max(dot(normalize(Normal), normalize(light.position - FragPos)), 0.0) * material.diffuse;
+    }
+    
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-normalize(light.position - FragPos), normalize(Normal));
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    specular = light.specular * spec * material.specular;
+
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+} 
